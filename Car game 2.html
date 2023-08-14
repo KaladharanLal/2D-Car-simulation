@@ -1,0 +1,277 @@
+<html>
+	<head>
+		<style>
+			*
+			{
+				margin:0;
+				padding:0;
+				box-sizing:border-box;
+			}
+			body
+			{
+				display:flex;
+				justify-content:center;
+				align-items:center;
+				height: 100%;
+				width: 100%;
+				position: absolute;
+				background:#26ac4a;
+				overflow: hidden;
+				z-index: 0;
+			}
+			.car
+			{
+				position: absolute;
+				height: 100px;
+				width: 50px;
+				bottom: 0px;
+				left: 0px;
+				background-color: red;
+				z-index: 10;
+			}
+			.wheel
+			{
+				position: absolute;
+				height: 20px;
+				width: 10px;
+				bottom: 0px;
+				left: 0px;
+				background-color: rgb(44, 44, 44);
+				z-index: 10;
+			}
+			.h_path
+			{
+				position: absolute;
+				height: 100px;
+				width: 200px;
+				bottom: 50%;
+				left: 50%;
+				transform: translate(-50%, 50%);
+				background-color: rgb(88, 88, 88);
+				z-index: 5;
+			}
+			.h_path::before
+			{
+				content: '';
+				position: absolute;
+				height: 400px;
+				width: 100px;
+				bottom: 50%;
+				left: 50%;
+				transform: translate(-200%, 50%);
+				background-color: rgb(88, 88, 88);
+				z-index: 5;
+			}
+			.h_path::after
+			{
+				content: '';
+				position: absolute;
+				height: 400px;
+				width: 100px;
+				bottom: 50%;
+				left: 50%;
+				transform: translate(100%, 50%);
+				background-color: rgb(88, 88, 88);
+				z-index: 5;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="h_path"></div>
+		<div id="carsGrp"></div>
+		<script>
+			carsGrp = document.getElementById('carsGrp')
+			car = null
+			div = null
+			dt = 1
+			lastTime = Date.now()
+			up = false
+			down = false
+			left = false
+			right = false
+			space = false
+
+			paused = false
+
+			class Car
+			{
+				constructor(n, x, y, w=50, h=100, fw=30, rw=30)
+				{
+					this.n = n
+					this.pos = [x, y]
+					this.size = [w, h]
+					this.wheelPos = [fw, rw]
+					this.wheels = []
+
+					div = document.createElement('div')
+					carsGrp.appendChild(div)
+					div.classList.add("car")
+					// switch(parseInt(6*Math.random()))
+					// {
+					// 	case 0: div.classList.add("violet"); break;
+					// 	case 1: div.classList.add("blue"); break;
+					// 	case 2: div.classList.add("yellow"); break;
+					// 	case 3: div.classList.add("red"); break;
+					// 	case 4: div.classList.add("pink"); break;
+					// 	case 5: div.classList.add("white"); break;
+					// 	case 6: div.classList.add("white"); break;
+					// }
+					div.id = `car_${n}`
+					div.style.left = `${parseInt(x)}px`
+					div.style.bottom = `${parseInt(y)}px`
+					div.style.width = `${parseInt(w)}px`
+					div.style.height = `${parseInt(h)}px`
+					this.div = div
+					for(var i=0; i<4; i++)
+					{
+						div = document.createElement('div')
+						this.div.appendChild(div)
+						div.classList.add("wheel")
+						this.wheels.push(div)
+					}
+					this.wheels[0].style.left = `0px`
+					this.wheels[0].style.bottom = `${h/2+fw-10}px`
+					this.wheels[1].style.left = `${w-10}px`
+					this.wheels[1].style.bottom = `${h/2+fw-10}px`
+					this.wheels[2].style.left = `0px`
+					this.wheels[2].style.bottom = `${h/2-rw-10}px`
+					this.wheels[3].style.left = `${w-10}px`
+					this.wheels[3].style.bottom = `${h/2-rw-10}px`
+
+					this.ang = 90
+					this.velo = 0
+					this.acc = 0
+					this.mass = 10
+					this.force = [0, 0]
+
+					this.maxVelo = 10
+					this.appliedForce = 1
+					this.drag = .01
+					this.brakingForce = 1
+				}
+				update(dt)
+				{
+					if(up)
+					{
+						car.acc = car.appliedForce/car.mass * dt
+					}
+					else if(down)
+					{
+						car.acc = -car.appliedForce/car.mass * dt
+					}
+					else
+					{
+						car.acc = 0
+					}
+					if(space && car.velo!=0)
+					{
+						car.acc = -car.velo/Math.abs(car.velo) * car.brakingForce/car.mass
+					}
+					if(left)
+					{
+						car.ang += .5 * dt * car.velo
+						car.turnWheel(-45)
+					}
+					if(right)
+					{
+						car.ang -= .5 * dt * car.velo
+						car.turnWheel(45)
+					}
+					if(!left && !right)
+					{
+						car.turnWheel(0)
+					}
+
+					if(this.velo < this.maxVelo)
+					{
+						this.velo += this.acc
+					}
+					this.velo -= this.velo != 0 ? this.velo/Math.abs(this.velo) * this.drag : 0
+					this.pos[0] += this.velo*Math.cos(this.ang*Math.PI/180)
+					this.pos[1] += this.velo*Math.sin(this.ang*Math.PI/180)
+					this.div.style.left = `${parseInt(this.pos[0])}px`
+					this.div.style.bottom = `${parseInt(this.pos[1])}px`
+					this.div.style.width = `${parseInt(this.size[0])}px`
+					this.div.style.height = `${parseInt(this.size[1])}px`
+					this.div.style.transform = `translateY(${this.wheelPos[1]}px) rotateZ(${-this.ang+90}deg) translateY(${-this.wheelPos[1]}px)`
+				}
+				turnWheel(d)
+				{
+					this.wheels[0].style.transform = `rotateZ(${d}deg)`
+					this.wheels[1].style.transform = `rotateZ(${d}deg)`
+				}
+			}
+
+			function init()
+			{
+				car = new Car(0, window.innerWidth/2-25, window.innerHeight/2-50)
+			}
+
+			function update()
+			{
+				if(!paused)
+				{
+					dt = (Date.now() - lastTime)/17
+					lastTime = Date.now()
+
+					
+					car.update(dt)
+
+					// console.log(Math.cos(car.ang))
+					setTimeout(update, 1000/60);
+				}
+			}
+			init()
+			update()
+
+			window.addEventListener('keydown', (event) => 
+			{
+				console.log(event.key)
+				if(event.key == 'ArrowUp')
+				{
+					up = true
+				}
+				else if(event.key == 'ArrowDown')
+				{
+					down = true
+				}
+				else if(event.key == 'ArrowLeft')
+				{
+					left = true
+				}
+				else if(event.key == 'ArrowRight')
+				{
+					right = true
+				}
+				else if(event.key == ' ')
+				{
+					space = true
+				}
+			});
+			window.addEventListener('keyup', (event) => 
+			{
+				console.log(event.key)
+				if(event.key == 'ArrowUp')
+				{
+					up = false
+				}
+				else if(event.key == 'ArrowDown')
+				{
+					down = false
+				}
+				else if(event.key == 'ArrowLeft')
+				{
+					left = false
+				}
+				else if(event.key == 'ArrowRight')
+				{
+					right = false
+				}
+				else if(event.key == ' ')
+				{
+					space = false
+				}
+			});
+		</script>
+	</body>
+</html>
